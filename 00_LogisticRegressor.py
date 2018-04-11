@@ -28,21 +28,39 @@ print(california_housing_dataframe.describe()) #Print some useful statistics abo
 # We want to predict median_house value, that will be our target
 
 # Our input feature will be total rooms
-# We do not have this information, so we calculate it and add it as a feature
 
 my_feature = california_housing_dataframe[["total_rooms"]]
 
-feature_columns = [tf.feature_column.numeric_column("total_rooms")]
 
+
+feature_columns = [tf.feature_column.numeric_column("total_rooms")]
 targets = california_housing_dataframe ["median_house_value"]
 
 #We use a linear regressor model
 
+# We choose a linear regressor searching for the minimum through gradient GradientDescentOptimizer
+# The learning rate defines the size of each step of the gradient
+
 my_optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.0000001)
+
+# Gradient clipping ensures the magnitude of the gradients do not become too large during training, which can cause gradient descent to fail.
 my_optimizer = tf.contrib.estimator.clip_gradients_by_norm(my_optimizer,5.0)
+
 
 linear_regressor = tf.estimator.LinearRegressor(feature_columns=feature_columns, optimizer = my_optimizer)
 
+#Define the input function, which tells TF how to preprocess, batch, shuffle and repeat data for training the classifier
+'''
+    Parameters:
+        features: Dataframe of features
+        targets: Dataframe of targets (median_house_value)
+        batch_size: Size of batches to be passed to the model
+        shuffle: True or False -> Whether to shuffle the data or not
+        num_epochs: Number of epochs for which data should be repeated
+
+    Return:
+        Tuple of (features, labels) for next data batch
+'''
 
 def my_input_fn (features, targets, batch_size=1, shuffle=True, num_epochs=None):
     #Convert pandas data into a dict of np arrays
@@ -65,6 +83,7 @@ _ = linear_regressor.train(input_fn=lambda:my_input_fn(my_feature, targets), ste
 
 prediction_input_fn = lambda: my_input_fn(my_feature, targets, num_epochs=1, shuffle=False)
 
+#Making the predictions
 predictions = linear_regressor.predict(input_fn=prediction_input_fn)
 
 predictions = np.array([item['predictions'][0] for item in predictions])
